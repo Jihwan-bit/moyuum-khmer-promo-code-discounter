@@ -81,6 +81,20 @@ body{
   flex-wrap: wrap;
 }
 
+@media (max-width: 640px){
+  .promo-row{ gap: 8px; }
+  .promo-row .promo-label{ flex: 1 1 100%; min-width: 0; }
+  .promo-row .promo-input{ flex: 1 1 auto; min-width: 0; }
+
+  .promo-row #promoApplyBtn,
+  .promo-row #promoClearBtn{
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
 .field-label{
   min-width: 210px;
   color: var(--muted);
