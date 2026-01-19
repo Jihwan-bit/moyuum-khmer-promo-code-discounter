@@ -50,6 +50,8 @@ const state = {
   stockInitMap: {},           // barcode -> initial stock
 
   promos: [],
+  ongoingPromotions: [],
+  ongoingSelectedIndex: 0,
   activeCategory: "All",
   promo: {
     codeRaw: "",
@@ -74,6 +76,9 @@ const I18N = {
     promoPlaceholder: "បញ្ចូលលេខកូដ...",
     promoApply: "អនុវត្ត",
     promoClear: "លុប",
+    ongoingTitle: "ប្រូម៉ូសិននៅបន្តដំណើរការ",
+    ongoingSelectPlaceholder: "ជ្រើសរើសប្រូម៉ូសិន...",
+    noOngoingPromotion: "អត់មានប្រូម៉ូសិនទេ ក្នុងខណៈពេលនេះ",
     promoValid: (name, tg, pct) => `✅ ប្រូម៉ូសិននៅមានសុពលភាព — <b>${escapeHtml(name)}</b> · តំណភ្ជាប់តាមតេឡេក្រាម: <b>${escapeHtml(tg)}</b> · <b>${pct}% OFF</b>`,
     promoInvalid: "⚠️ Promo code is invalid (no discount applied).",
     orderTitle: "ព័ត៌មានបញ្ជាទិញ / អតិថិជន",
@@ -151,6 +156,9 @@ const I18N = {
     promoPlaceholder: "Enter promo code...",
     promoApply: "Apply",
     promoClear: "Clear",
+    ongoingTitle: "Ongoing promotion",
+    ongoingSelectPlaceholder: "Select a promotion...",
+    noOngoingPromotion: "No promotion at this time",
     promoValid: (name, tg, pct) => `✅ Valid promo — <b>${escapeHtml(name)}</b> · <b>${escapeHtml(tg)}</b> · <b>${pct}% OFF</b>`,
     promoInvalid: "⚠️ Promo code is invalid (no discount applied).",
     orderTitle: "Order / Customer Info (Optional)",
@@ -532,6 +540,31 @@ async function loadData(){
 
     return q;
   });
+}
+
+async function loadOngoingPromotions(){
+  // Safe load: if file missing or invalid, treat as no promotions.
+  try{
+    const res = await fetch("./data/ongoing_promotions.json", {cache:"no-store"});
+    if (!res.ok){
+      state.ongoingPromotions = [];
+      return;
+    }
+    const arr = await res.json();
+    if (!Array.isArray(arr)){
+      state.ongoingPromotions = [];
+      return;
+    }
+    state.ongoingPromotions = arr.map(p => {
+      const q = {...p};
+      // normalize common image fields
+      q.Image1 = normalizeGDriveUrl(q.Image1 || q.image || q.Image || "");
+      q.Image2 = normalizeGDriveUrl(q.Image2 || "");
+      return q;
+    });
+  }catch(_e){
+    state.ongoingPromotions = [];
+  }
 }
 
 
@@ -1007,6 +1040,7 @@ function addToCart(barcode, qty){
   renderTotals();
   renderPromoGifts();
   updateInvoiceButton();
+  renderOngoingPromotions();
   renderProducts();
 }
 
@@ -1017,6 +1051,7 @@ function removeFromCart(barcode){
   renderTotals();
   renderPromoGifts();
   updateInvoiceButton();
+  renderOngoingPromotions();
   renderProducts();
 }
 
@@ -1043,6 +1078,7 @@ function setCartQty(barcode, qty){
   renderTotals();
   renderPromoGifts();
   updateInvoiceButton();
+  renderOngoingPromotions();
   renderProducts();
 }
 
@@ -1876,6 +1912,8 @@ function renderTexts(){
   $("#promoApplyBtn").textContent = t.promoApply;
   $("#promoClearBtn").textContent = t.promoClear;
 
+  const ot = $("#ongoingTitle"); if (ot) ot.textContent = t.ongoingTitle;
+
   $("#orderTitle").textContent = t.orderTitle;
   $("#orderDateLabel").textContent = t.orderDateLabel;
   $("#orderNoLabel").textContent = t.orderNoLabel;
@@ -1990,9 +2028,182 @@ function linkifyPromoMeta(){
   );
 }
 
+
+
+function renderOngoingPromotions(){
+  const t = I18N[state.lang];
+
+  const titleEl = document.getElementById("ongoingTitle");
+  if (titleEl) titleEl.textContent = t.ongoingTitle;
+
+  const selectEl = document.getElementById("ongoingSelect");
+  const displayEl = document.getElementById("ongoingDisplay");
+  const legacyListEl = document.getElementById("ongoingList");
+
+  const promos = Array.isArray(state.ongoingPromotions) ? state.ongoingPromotions : [];
+
+  // Fallback: if the new UI is not present (older HTML), render the legacy list UI.
+  if (!selectEl || !displayEl){
+    if (!legacyListEl) return;
+    legacyListEl.innerHTML = "";
+    if (promos.length === 0){
+      const p = document.createElement("div");
+      p.className = "ongoing-empty";
+      p.textContent = t.noOngoingPromotion;
+      legacyListEl.appendChild(p);
+      return;
+    }
+    for (const pr of promos){
+      const item = document.createElement("div");
+      item.className = "ongoing-item";
+
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "ongoing-img";
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      const src = pr.Image1 || pr.Image2 || "";
+      img.src = src;
+      img.alt = (state.lang === "km") ? (pr["Name(KH.)"] || pr.km || "Promotion") : (pr["Name(EN.)"] || pr.en || "Promotion");
+      img.onerror = () => { imgWrap.innerHTML = "<div class='ongoing-img-fallback'>No image</div>"; };
+      if (src) imgWrap.appendChild(img);
+      else imgWrap.innerHTML = "<div class='ongoing-img-fallback'>No image</div>";
+
+      const body = document.createElement("div");
+      body.className = "ongoing-body";
+      const textEl = document.createElement("div");
+      textEl.className = "ongoing-text";
+      const kmText = pr["Name(KH.)"] || pr.km || pr.title_km || pr.titleKm || pr.title || "";
+      const enText = pr["Name(EN.)"] || pr.en || pr.title_en || pr.titleEn || pr.title || "";
+      textEl.textContent = (state.lang === "km") ? (kmText || enText) : (enText || kmText);
+      body.appendChild(textEl);
+      item.appendChild(imgWrap);
+      item.appendChild(body);
+      legacyListEl.appendChild(item);
+    }
+    return;
+  }
+
+  // New UI: dropdown selector + big image view
+  const getTexts = (pr) => {
+    const kmText = pr["Name(KH.)"] || pr.km || pr.title_km || pr.titleKm || pr.title || "";
+    const enText = pr["Name(EN.)"] || pr.en || pr.title_en || pr.titleEn || pr.title || "";
+    return { kmText, enText };
+  };
+
+  const renderEmpty = () => {
+    selectEl.innerHTML = "";
+    selectEl.disabled = true;
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = t.noOngoingPromotion;
+    selectEl.appendChild(opt);
+
+    displayEl.innerHTML = "<div class='ongoing-empty'>" + escapeHtml(t.noOngoingPromotion) + "</div>";
+  };
+
+  const renderSelected = (idx) => {
+    const pr = promos[idx];
+    if (!pr){
+      displayEl.innerHTML = "<div class='ongoing-empty'>" + escapeHtml(t.noOngoingPromotion) + "</div>";
+      return;
+    }
+
+    const { kmText, enText } = getTexts(pr);
+    const primary = (state.lang === "km") ? (kmText || enText) : (enText || kmText);
+    const secondary = (state.lang === "km") ? (enText || "") : (kmText || "");
+    const src = pr.Image1 || pr.Image2 || pr.image || pr.imageUrl || "";
+
+    // Build DOM (avoid innerHTML for image error handling)
+    displayEl.innerHTML = "";
+    const wrapper = document.createElement("div");
+    wrapper.className = "ongoing-display";
+
+    if (src){
+      const img = document.createElement("img");
+      img.className = "ongoing-display-img";
+      img.loading = "lazy";
+      img.src = src;
+      img.alt = primary || "Promotion";
+      img.onerror = () => {
+        img.remove();
+        const fb = document.createElement("div");
+        fb.className = "ongoing-img-fallback";
+        fb.textContent = "No image";
+        wrapper.prepend(fb);
+      };
+      wrapper.appendChild(img);
+    } else {
+      const fb = document.createElement("div");
+      fb.className = "ongoing-img-fallback";
+      fb.textContent = "No image";
+      wrapper.appendChild(fb);
+    }
+
+    const body = document.createElement("div");
+    body.className = "ongoing-display-body";
+
+    const title = document.createElement("div");
+    title.className = "ongoing-display-title";
+    title.textContent = primary || "Promotion";
+
+    body.appendChild(title);
+
+    if (secondary && secondary !== primary){
+      const sub = document.createElement("div");
+      sub.className = "ongoing-display-subtitle";
+      sub.textContent = secondary;
+      body.appendChild(sub);
+    }
+
+    wrapper.appendChild(body);
+    displayEl.appendChild(wrapper);
+  };
+
+  if (promos.length === 0){
+    renderEmpty();
+    if (legacyListEl) legacyListEl.innerHTML = "";
+    return;
+  }
+
+  // Populate select options
+  selectEl.disabled = false;
+  selectEl.innerHTML = "";
+
+  for (let i = 0; i < promos.length; i++){
+    const pr = promos[i];
+    const { kmText, enText } = getTexts(pr);
+    const label = (state.lang === "km") ? (kmText || enText) : (enText || kmText);
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = label || (t.ongoingSelectPlaceholder || "Promotion");
+    selectEl.appendChild(opt);
+  }
+
+  // Clamp selection
+  let idx = Number.isFinite(state.ongoingSelectedIndex) ? state.ongoingSelectedIndex : 0;
+  idx = Math.max(0, Math.min(promos.length - 1, idx));
+  state.ongoingSelectedIndex = idx;
+  selectEl.value = String(idx);
+
+  // Bind once
+  if (!selectEl.__boundOngoingChange){
+    selectEl.addEventListener("change", () => {
+      const next = parseInt(selectEl.value, 10);
+      state.ongoingSelectedIndex = Number.isFinite(next) ? next : 0;
+      renderOngoingPromotions();
+    });
+    selectEl.__boundOngoingChange = true;
+  }
+
+  renderSelected(idx);
+
+  // If legacy list exists, keep it empty to avoid duplicated UI.
+  if (legacyListEl) legacyListEl.innerHTML = "";
+}
 function renderAll(){
   renderTexts();
   buildCategoryFilters();
+  renderOngoingPromotions();
   renderProducts();
   renderCart();
   prunePromoGiftSelection();
@@ -2467,6 +2678,7 @@ window.MOYUUM_DEBUG = {
   try{
     loadLocal();
     await loadData();
+    await loadOngoingPromotions();
     computeAccReferenceCounts();
 
   // Promo input: do NOT auto-fill on load
