@@ -2317,13 +2317,33 @@ function buildPartnersEmbedUrl(partner){
 }
 
 function openPartnersMap(partner){
+  const raw = String(partner["Google map"] || "").trim();
+
+  // Mobile: opening Google Maps in a new tab / native app is much more reliable
+  // than iframe embedding (iframe is frequently blocked or hard to use on mobile).
+  const isMobile = (
+    (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(String(navigator.userAgent || ""))
+  );
+  if (isMobile){
+    const fallbackSearch = (() => {
+      const shop = String(partner["Shop Name"] || "").trim();
+      const loc1 = String(partner["Location1_EN"] || "").trim();
+      const loc2 = String(partner["Location2_EN"] || "").trim();
+      const q = [shop, loc2, loc1, "Cambodia"].filter(Boolean).join(" ");
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+    })();
+    const url = raw || fallbackSearch;
+    try{ window.open(url, "_blank", "noopener"); }catch(_){ window.location.href = url; }
+    return;
+  }
+
   const modal = $("#partnersMapModal");
   const frame = $("#partnersMapFrame");
   const link = $("#partnersMapOpenLink");
   if (!modal || !frame) return;
 
   frame.src = buildPartnersEmbedUrl(partner);
-  const raw = String(partner["Google map"] || "").trim();
   if (link){
     link.href = raw || "#";
     link.style.display = raw ? "inline-flex" : "none";
@@ -2526,8 +2546,9 @@ function renderPartners(){
       mapBtn.className = "btn btn-secondary";
       mapBtn.type = "button";
       mapBtn.textContent = (t.partnersMapBtn || t.partnersMap || "Google map");
-      mapBtn.addEventListener("click", () => {
-        showMapEmbed(p["Google map"]);
+      mapBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        try{ openPartnersMap(p); }catch(err){ dbgCaptureError(err, "openPartnersMap_click"); }
       });
       mapCell.appendChild(mapBtn);
 
@@ -2836,8 +2857,18 @@ function attachEvents(){
   $("#invoiceModal").addEventListener("click", (e) => {
     if (e.target?.dataset?.close) closeModal();
   });
+  // partners map modal close
+  const _partnersMapModal = $("#partnersMapModal");
+  if (_partnersMapModal){
+    _partnersMapModal.addEventListener("click", (e) => {
+      if (e.target?.dataset?.close) closePartnersMap();
+    });
+  }
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape"){
+      closeModal();
+      closePartnersMap();
+    }
   });
 
   $("#printBtn").onclick = () => window.print();
