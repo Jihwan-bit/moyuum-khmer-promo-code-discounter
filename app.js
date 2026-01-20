@@ -2305,9 +2305,42 @@ function buildPartnersFilterOptions(){
   }
 }
 
+
+function getPartnerLatLng(partner){
+  // Prefer explicit Lat/Lng fields (added to official_partners.json)
+  const latRaw = partner && (partner["Lat"] ?? partner["lat"]);
+  const lngRaw = partner && (partner["Lng"] ?? partner["lng"]);
+
+  const lat = parseFloat(String(latRaw ?? "").trim());
+  const lng = parseFloat(String(lngRaw ?? "").trim());
+  if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+
+  // Fallback: try to extract coordinates from a full Google Maps URL (not short maps.app.goo.gl)
+  const raw = String((partner && partner["Google map"]) || "").trim();
+  if (!raw) return null;
+
+  // Example: .../@11.5564,104.9282,17z
+  let m = raw.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+
+  // Example: ...?q=11.5564,104.9282  or  ...?query=11.5564,104.9282
+  m = raw.match(/[?&](?:q|query)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+  if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+
+  return null;
+}
+
+
 function buildPartnersEmbedUrl(partner){
-  // Use a safe embed query so it works without API keys.
-  // It will still show a highlighted pin for the search result.
+  // Use a safe embed URL so it works without API keys.
+  // If Lat/Lng exists, use it for accurate pin placement (no search ambiguity).
+  const ll = getPartnerLatLng(partner);
+  if (ll){
+    const z = 17;
+    return `https://www.google.com/maps?q=${ll.lat},${ll.lng}&z=${z}&output=embed`;
+  }
+
+  // Fallback: build a search query
   const shop = String(partner["Shop Name"] || "").trim();
   const loc1 = String(partner[state.lang === "km" ? "Location1_KH" : "Location1_EN"] || "").trim();
   const loc2 = String(partner[state.lang === "km" ? "Location2_KH" : "Location2_EN"] || "").trim();
@@ -2318,6 +2351,10 @@ function buildPartnersEmbedUrl(partner){
 
 function openPartnersMap(partner){
   const raw = String(partner["Google map"] || "").trim();
+  const ll = getPartnerLatLng(partner);
+
+  // Prefer Lat/Lng when available for zero-ambiguity pin location
+  const directLink = ll ? `https://www.google.com/maps/search/?api=1&query=${ll.lat},${ll.lng}` : "";
 
   // Mobile: opening Google Maps in a new tab / native app is much more reliable
   // than iframe embedding (iframe is frequently blocked or hard to use on mobile).
@@ -2333,7 +2370,9 @@ function openPartnersMap(partner){
       const q = [shop, loc2, loc1, "Cambodia"].filter(Boolean).join(" ");
       return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
     })();
-    const url = raw || fallbackSearch;
+
+    // Priority: direct lat/lng -> raw link -> search fallback
+    const url = directLink || raw || fallbackSearch;
     try{ window.open(url, "_blank", "noopener"); }catch(_){ window.location.href = url; }
     return;
   }
@@ -2344,9 +2383,12 @@ function openPartnersMap(partner){
   if (!modal || !frame) return;
 
   frame.src = buildPartnersEmbedUrl(partner);
+
+  // "Open in Google Maps" link
+  const linkUrl = directLink || raw;
   if (link){
-    link.href = raw || "#";
-    link.style.display = raw ? "inline-flex" : "none";
+    link.href = linkUrl || "#";
+    link.style.display = linkUrl ? "inline-flex" : "none";
   }
 
   modal.classList.add("show");
