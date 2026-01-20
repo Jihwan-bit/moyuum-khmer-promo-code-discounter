@@ -1,0 +1,56 @@
+[
+  {
+    "No.": 1,
+    "Shop Name": "The Baby Shop",
+    "Location1_KH": "ភ្នំពេញ",
+    "Location1_EN": "Phnom Penh",
+    "Location2_KH": "ទួលគោក",
+    "Location2_EN": "Tuol Kouk",
+    "Google map": "https://maps.app.goo.gl/tkWyQ9c7YEmjg4538",
+    "Contact": "https://www.facebook.com/thebabyshoptk/"
+  },
+
+  {
+    "No.": 2,
+    "Shop Name": "Kon Store Cambodia",
+    "Location1_KH": "ភ្នំពេញ",
+    "Location1_EN": "Phnom Penh",
+    "Location2_KH": "ទួលគោក",
+    "Location2_EN": "Tuol Kouk",
+    "Google map": "https://maps.app.goo.gl/H1AvAEy5T1hfh6Ux8",
+    "Contact": "https://www.facebook.com/konstorecambodia"
+  },
+
+  {
+    "No.": 4,
+    "Shop Name": "Kon Ngaet Kon Nga",
+    "Location1_KH": "ភ្នំពេញ",
+    "Location1_EN": "Phnom Penh",
+    "Location2_KH": "ខណ្ឌសែនសុខ",
+    "Location2_EN": "Sen Sok",
+    "Google map": "https://maps.app.goo.gl/nhHUdogt1Ra3RU6E7",
+    "Contact": "https://www.facebook.com/profile.php?id=100063898513564"
+  },
+
+  {
+    "No.": 1,
+    "Shop Name": "Jolie Mart",
+    "Location1_KH": "ខេត្ត",
+    "Location1_EN": "Provinces",
+    "Location2_KH": "ក្រុងតាខ្មៅ",
+    "Location2_EN": "Takhmau",
+    "Google map": "https://share.google/4Amh17hPaiCEZwm8b",
+    "Contact": "https://www.facebook.com/joliemart.takhmau"
+  },
+
+  {
+    "No.": 2,
+    "Shop Name": "Leang Sry Shop",
+    "Location1_KH": "ខេត្ត",
+    "Location1_EN": "Provinces",
+    "Location2_KH": "កំពង់ចាម",
+    "Location2_EN": "Kompong Cham",
+    "Google map": "https://www.google.com/maps/place/%E1%9E%9C%E1%9E%B7%E1%9E%90%E1%9E%B8+%E1%9E%96%E1%9F%92%E1%9E%9A%E1%9F%87%E1%9E%A2%E1%9E%84%E1%9F%92%E1%9E%82%E1%9E%A2%E1%9F%81%E1%9E%84/@11.9924294,105.4619605,17z/data=!3m1!4b1!4m6!3m5!1s0x310c6b457b219df5:0x302abdbf505c21bb!8m2!3d11.9924294!4d105.4645408!16s%2Fg%2F11rzqxzffb?entry=ttu&g_ep=EgoyMDI2MDExMy4wIKXMDSoASAFQAw%3D%3D",
+    "Contact": "https://www.facebook.com/leangsryshop"
+  }
+]
