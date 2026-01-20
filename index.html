@@ -105,7 +105,39 @@
         
     </section>
 
+    <!-- Moyuum Official Partners (Below Cart) -->
+    <section class="card partners-card">
+      <div class="partners-head">
+        <div class="partners-title" id="partnersTitle">Moyuum Official Partners</div>
+        <div class="partners-controls">
+          <select id="partnersFilter" class="text-input partners-select"></select>
+          <button id="partnersToggle" class="btn btn-secondary partners-toggle" type="button"></button>
+        </div>
+      </div>
 
+      <!-- Collapsible body: only show when user chooses to view -->
+      <div class="partners-body collapsed" id="partnersBody">
+        <div class="partners-list" id="partnersList"></div>
+        <div class="muted" id="partnersEmpty"></div>
+      </div>
+    </section>
+
+    <!-- Partners Map Modal -->
+    <div class="modal hidden" id="partnersMapModal" role="dialog" aria-modal="true" aria-labelledby="partnersMapModalTitle">
+      <div class="modal-backdrop" data-close="partnersMapModal"></div>
+      <div class="modal-card">
+        <div class="modal-head">
+          <div class="modal-title" id="partnersMapModalTitle">Google map</div>
+          <button class="btn btn-ghost" type="button" data-close="partnersMapModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <iframe id="partnersMapFrame" class="partners-map-frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="partners-map-openline">
+            <a id="partnersMapOpenLink" href="#" target="_blank" rel="noopener">Open in Google Maps</a>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Order / Customer (Optional) -->
     <section class="card order-card">

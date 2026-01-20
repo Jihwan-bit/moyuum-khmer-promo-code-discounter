@@ -52,6 +52,12 @@ const state = {
   promos: [],
   ongoingPromotions: [],
   ongoingSelectedIndex: 0,
+
+  // Moyuum Official Partners
+  partners: [],
+  partnersFilter: "all",     // all | pp | prov
+  partnersExpanded: false,
+
   activeCategory: "All",
   promo: {
     codeRaw: "",
@@ -79,6 +85,21 @@ const I18N = {
     ongoingTitle: "ប្រូម៉ូសិននៅបន្តដំណើរការ",
     ongoingSelectPlaceholder: "ជ្រើសរើសប្រូម៉ូសិន...",
     noOngoingPromotion: "អត់មានប្រូម៉ូសិនទេ ក្នុងខណៈពេលនេះ",
+
+    partnersTitle: "ដៃគូផ្លូវការរបស់ Moyuum",
+    partnersNo: "ល.រ",
+    partnersShopName: "ឈ្មោះហាង",
+    partnersMap: "ផែនទី",
+    partnersContact: "ទំនាក់ទំនង",
+    partnersFilterAll: "ដៃគូរសហការ",
+    partnersFilterPP: "ភ្នំពេញ",
+    partnersFilterProv: "ខេត្",
+    partnersNoData: "អត់មានដៃគូផ្លូវការទេ ក្នុងខណៈពេលនេះ",
+    partnersMapBtn: "ផែនទី",
+    partnersContactBtn: "ទំនាក់ទំនង",
+    partnersOpenInGMaps: "បើកក្នុង Google Maps",
+    partnersView: "ពិនិត្យ",
+    partnersHide: "លាក់",
     promoValid: (name, tg, pct) => `✅ ប្រូម៉ូសិននៅមានសុពលភាព — <b>${escapeHtml(name)}</b> · តំណភ្ជាប់តាមតេឡេក្រាម: <b>${escapeHtml(tg)}</b> · <b>${pct}% OFF</b>`,
     promoInvalid: "⚠️ Promo code is invalid (no discount applied).",
     orderTitle: "ព័ត៌មានបញ្ជាទិញ / អតិថិជន",
@@ -159,6 +180,21 @@ const I18N = {
     ongoingTitle: "Ongoing promotion",
     ongoingSelectPlaceholder: "Select a promotion...",
     noOngoingPromotion: "No promotion at this time",
+
+    partnersTitle: "Moyuum Official Partners",
+    partnersNo: "No.",
+    partnersShopName: "Shop Name",
+    partnersMap: "Google map",
+    partnersContact: "Contact",
+    partnersFilterAll: "All partners",
+    partnersFilterPP: "Phnom Penh",
+    partnersFilterProv: "Provinces",
+    partnersNoData: "No partner at this time",
+    partnersMapBtn: "Google map",
+    partnersContactBtn: "Contact",
+    partnersOpenInGMaps: "Open in Google Maps",
+    partnersView: "View",
+    partnersHide: "Hide",
     promoValid: (name, tg, pct) => `✅ Valid promo — <b>${escapeHtml(name)}</b> · <b>${escapeHtml(tg)}</b> · <b>${pct}% OFF</b>`,
     promoInvalid: "⚠️ Promo code is invalid (no discount applied).",
     orderTitle: "Order / Customer Info (Optional)",
@@ -564,6 +600,25 @@ async function loadOngoingPromotions(){
     });
   }catch(_e){
     state.ongoingPromotions = [];
+  }
+}
+
+async function loadOfficialPartners(){
+  // Safe load: if file missing or invalid, treat as no partners.
+  try{
+    const res = await fetch("./data/official_partners.json", {cache:"no-store"});
+    if (!res.ok){
+      state.partners = [];
+      return;
+    }
+    const arr = await res.json();
+    if (!Array.isArray(arr)){
+      state.partners = [];
+      return;
+    }
+    state.partners = arr.map(p => ({...p}));
+  }catch(_e){
+    state.partners = [];
   }
 }
 
@@ -1966,6 +2021,15 @@ function renderTexts(){
   if (downloadQrImgBtn) downloadQrImgBtn.textContent = t.payQrDownload;
   $("#langToggle").textContent = t.languageBtn;
 
+  // partners section title + toggle
+  const pt = $("#partnersTitle");
+  if (pt) pt.textContent = t.partnersTitle || "Moyuum Official Partners";
+
+  const pToggle = $("#partnersToggle");
+  if (pToggle){
+    pToggle.textContent = state.partnersExpanded ? (t.partnersHide || "Hide") : (t.partnersView || "View");
+  }
+
   document.documentElement.lang = (state.lang === "km" ? "km" : "en");
 }
 
@@ -2200,10 +2264,307 @@ function renderOngoingPromotions(){
   // If legacy list exists, keep it empty to avoid duplicated UI.
   if (legacyListEl) legacyListEl.innerHTML = "";
 }
+
+// ------------------------------
+// Moyuum Official Partners (Below Cart)
+// ------------------------------
+function buildPartnersFilterOptions(){
+  const sel = $("#partnersFilter");
+  if (!sel) return;
+  const t = I18N[state.lang];
+
+  // Keep current value if possible
+  const prev = sel.value || state.partnersFilter || "all";
+  sel.innerHTML = "";
+
+  const addOpt = (value, label) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    sel.appendChild(o);
+  };
+
+  addOpt("all", t.partnersFilterAll || "All partners");
+  addOpt("pp", t.partnersFilterPP || "Phnom Penh");
+  addOpt("prov", t.partnersFilterProv || "Provinces");
+
+  if (["all","pp","prov"].includes(prev)){
+    sel.value = prev;
+    state.partnersFilter = prev;
+  } else {
+    sel.value = "all";
+    state.partnersFilter = "all";
+  }
+
+  if (!sel.__boundPartnersChange){
+    sel.addEventListener("change", () => {
+      state.partnersFilter = sel.value || "all";
+      renderPartners();
+    });
+    sel.__boundPartnersChange = true;
+  }
+}
+
+function buildPartnersEmbedUrl(partner){
+  // Use a safe embed query so it works without API keys.
+  // It will still show a highlighted pin for the search result.
+  const shop = String(partner["Shop Name"] || "").trim();
+  const loc1 = String(partner[state.lang === "km" ? "Location1_KH" : "Location1_EN"] || "").trim();
+  const loc2 = String(partner[state.lang === "km" ? "Location2_KH" : "Location2_EN"] || "").trim();
+  const q = [shop, loc2, loc1, "Cambodia"].filter(Boolean).join(" ");
+  const enc = encodeURIComponent(q);
+  return `https://www.google.com/maps?q=${enc}&output=embed`;
+}
+
+function openPartnersMap(partner){
+  const modal = $("#partnersMapModal");
+  const frame = $("#partnersMapFrame");
+  const link = $("#partnersMapOpenLink");
+  if (!modal || !frame) return;
+
+  frame.src = buildPartnersEmbedUrl(partner);
+  const raw = String(partner["Google map"] || "").trim();
+  if (link){
+    link.href = raw || "#";
+    link.style.display = raw ? "inline-flex" : "none";
+  }
+
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closePartnersMap(){
+  const modal = $("#partnersMapModal");
+  const frame = $("#partnersMapFrame");
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+  if (frame) frame.src = "";
+}
+
+function renderPartners(){
+  const t = I18N[state.lang] || I18N.en;
+
+  const filterSel = $("#partnersFilter");
+  const toggleBtn = $("#partnersToggle");
+  const bodyWrap = $("#partnersBody");
+  const list = $("#partnersList");
+  const empty = $("#partnersEmpty");
+
+  if (!filterSel || !list || !empty){
+    return;
+  }
+
+  // Bind dropdown change once
+  if (!filterSel._bound){
+    filterSel.addEventListener("change", () => {
+      state.partnersFilter = filterSel.value;
+      renderPartners();
+    });
+    filterSel._bound = true;
+  }
+
+  // Build dropdown options every render (so labels follow current language)
+  const opts = [
+    { value: "all", label: (t.partnersFilterAll || "All partners") },
+    { value: "pp", label: (t.partnersFilterPP || "Phnom Penh") },
+    { value: "prov", label: (t.partnersFilterProv || "Provinces") },
+  ];
+  filterSel.innerHTML = "";
+  for (const o of opts){
+    const opt = document.createElement("option");
+    opt.value = o.value;
+    opt.textContent = o.label;
+    filterSel.appendChild(opt);
+  }
+  filterSel.value = state.partnersFilter || "all";
+
+  // Bind expand/collapse once
+  if (toggleBtn && !toggleBtn._bound){
+    toggleBtn.addEventListener("click", () => {
+      state.partnersExpanded = !state.partnersExpanded;
+      renderTexts();
+      renderPartners();
+    });
+    toggleBtn._bound = true;
+  }
+
+  if (bodyWrap){
+    bodyWrap.classList.toggle("collapsed", !state.partnersExpanded);
+  }
+
+  // Don’t render heavy content unless user chose to view
+  if (!state.partnersExpanded){
+    list.innerHTML = "";
+    empty.textContent = "";
+    return;
+  }
+
+  list.innerHTML = "";
+  empty.textContent = "";
+
+  const partners = Array.isArray(state.partners) ? state.partners : [];
+  if (partners.length === 0){
+    empty.textContent = (t.partnersNoData || "No promotion at this time");
+    return;
+  }
+
+  // Filter
+  let filtered = partners.slice();
+  const norm = (s) => String(s || "").trim().toLowerCase();
+  if ((state.partnersFilter || "all") === "pp"){
+    filtered = filtered.filter(p => norm(p.Location1_EN) === "phnom penh");
+  } else if ((state.partnersFilter || "all") === "prov"){
+    filtered = filtered.filter(p => norm(p.Location1_EN) !== "phnom penh");
+  }
+
+  if (filtered.length === 0){
+    empty.textContent = (t.partnersNoData || "No promotion at this time");
+    return;
+  }
+
+  // Grouping
+  const groups = new Map();
+  for (const p of filtered){
+    const l1 = (state.lang === "km") ? (p.Location1_KH || p.Location1_EN || "") : (p.Location1_EN || p.Location1_KH || "");
+    const l2 = (state.lang === "km") ? (p.Location2_KH || p.Location2_EN || "") : (p.Location2_EN || p.Location2_KH || "");
+
+    const key = ((state.partnersFilter || "all") === "all") ? `${l1}|||${l2}` : `${l2}`;
+    if (!groups.has(key)){
+      groups.set(key, { l1, l2, items: [] });
+    }
+    groups.get(key).items.push(p);
+  }
+
+  let groupArr = Array.from(groups.values());
+
+  // Sort items inside each group (Shop Name)
+  groupArr.forEach(g => {
+    g.items.sort((a, b) => {
+      const an = String(a["Shop Name"] || "");
+      const bn = String(b["Shop Name"] || "");
+      return an.localeCompare(bn, undefined, { numeric: true, sensitivity: "base" });
+    });
+  });
+
+  // Sort groups by number of shops (desc), then by location text
+  groupArr.sort((a, b) => {
+    if (b.items.length !== a.items.length) return b.items.length - a.items.length;
+    const aKey = ((state.partnersFilter || "all") === "all") ? `${a.l1} ${a.l2}`.trim() : `${a.l2}`.trim();
+    const bKey = ((state.partnersFilter || "all") === "all") ? `${b.l1} ${b.l2}`.trim() : `${b.l2}`.trim();
+    return aKey.localeCompare(bKey, undefined, { numeric: true, sensitivity: "base" });
+  });
+
+  let runningNo = 1;
+
+  for (const g of groupArr){
+    const details = document.createElement("details");
+    details.className = "partner-group";
+
+    const summary = document.createElement("summary");
+    summary.className = "partner-group-header";
+
+    const groupTitle = document.createElement("div");
+    groupTitle.className = "partner-group-title";
+    groupTitle.textContent = ((state.partnersFilter || "all") === "all") ? `${g.l1} · ${g.l2}` : `${g.l2}`;
+
+    const count = document.createElement("div");
+    count.className = "partner-group-count";
+    count.textContent = String(g.items.length);
+
+    const hint = document.createElement("div");
+    hint.className = "partner-group-hint";
+    hint.textContent = (t.partnersView || "View");
+
+    summary.appendChild(groupTitle);
+    summary.appendChild(count);
+    summary.appendChild(hint);
+
+    const body = document.createElement("div");
+    body.className = "partner-group-body";
+
+    const headerRow = document.createElement("div");
+    headerRow.className = "partner-table-header";
+
+    const hNo = document.createElement("div");
+    hNo.className = "partner-cell partner-no";
+    hNo.textContent = t.partnersNo || "No.";
+
+    const hShop = document.createElement("div");
+    hShop.className = "partner-cell partner-shop";
+    hShop.textContent = t.partnersShopName || "Shop Name";
+
+    const hMap = document.createElement("div");
+    hMap.className = "partner-cell partner-map";
+    hMap.textContent = t.partnersMap || "Google map";
+
+    const hContact = document.createElement("div");
+    hContact.className = "partner-cell partner-contact";
+    hContact.textContent = t.partnersContact || "Contact";
+
+    headerRow.appendChild(hNo);
+    headerRow.appendChild(hShop);
+    headerRow.appendChild(hMap);
+    headerRow.appendChild(hContact);
+    body.appendChild(headerRow);
+
+    for (const p of g.items){
+      const row = document.createElement("div");
+      row.className = "partner-row";
+
+      const noCell = document.createElement("div");
+      noCell.className = "partner-cell partner-no";
+      noCell.textContent = String(runningNo++);
+
+      const shopCell = document.createElement("div");
+      shopCell.className = "partner-cell partner-shop";
+      shopCell.textContent = p["Shop Name"] || "";
+
+      const mapCell = document.createElement("div");
+      mapCell.className = "partner-cell partner-map";
+      const mapBtn = document.createElement("button");
+      mapBtn.className = "btn btn-secondary";
+      mapBtn.type = "button";
+      mapBtn.textContent = (t.partnersMapBtn || t.partnersMap || "Google map");
+      mapBtn.addEventListener("click", () => {
+        showMapEmbed(p["Google map"]);
+      });
+      mapCell.appendChild(mapBtn);
+
+      const contactCell = document.createElement("div");
+      contactCell.className = "partner-cell partner-contact";
+      const a = document.createElement("a");
+      a.href = p.Contact || "#";
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "btn btn-secondary";
+      a.textContent = (t.partnersContactBtn || t.partnersContact || "Contact");
+      contactCell.appendChild(a);
+
+      row.appendChild(noCell);
+      row.appendChild(shopCell);
+      row.appendChild(mapCell);
+      row.appendChild(contactCell);
+      body.appendChild(row);
+    }
+
+    details.appendChild(summary);
+    details.appendChild(body);
+    list.appendChild(details);
+  }
+
+  // update hint label when opened/closed
+  list.addEventListener('toggle', (e)=>{
+    // keep simple: no-op
+  }, { once: true });
+}
+
 function renderAll(){
+
   renderTexts();
   buildCategoryFilters();
   renderOngoingPromotions();
+  renderPartners();
   renderProducts();
   renderCart();
   prunePromoGiftSelection();
@@ -2679,6 +3040,7 @@ window.MOYUUM_DEBUG = {
     loadLocal();
     await loadData();
     await loadOngoingPromotions();
+    await loadOfficialPartners();
     computeAccReferenceCounts();
 
   // Promo input: do NOT auto-fill on load
