@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Moyuum Khmer Promo Code Discounter</title>
+
+  <!-- Khmer-capable fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Invoice PDF dependencies (CDN, works on GitHub Pages) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title">Moyuum Khmer Promo Code Discounter</div>
+      <div class="brand-sub" id="brandSub"></div>
+    </div>
+
+    <div class="top-actions">
+      <button class="pill-btn" id="langToggle" type="button">EN</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Promo -->
+    <section class="card promo-card">
+      <div class="promo-row">
+        <div class="promo-label" id="promoLabel"></div>
+        <input id="promoInput" class="text-input promo-input" type="text" autocomplete="off" />
+        <button class="btn" id="promoApplyBtn" type="button">Apply</button>
+        <button class="btn btn-ghost" id="promoClearBtn" type="button">Clear</button>
+      </div>
+      <div class="promo-hint" id="promoHint"></div>
+      <div class="promo-meta" id="promoMeta"></div>
+    </section>
+
+    <!-- Ongoing promotion -->
+    <section class="card ongoing-card">
+      <details class="ongoing-details">
+        <summary class="ongoing-summary">
+          <span id="ongoingTitle">Ongoing promotion</span>
+        </summary>
+        <div class="ongoing-controls">
+          <select id="ongoingSelect" class="text-input ongoing-select"></select>
+        </div>
+        <div id="ongoingDisplay" class="ongoing-display"></div>
+      </details>
+    </section>
+
+<!-- Cart (Top) -->
+    <section class="card cart-card cart-top">
+      
+          <div class="cart-head">
+            <div class="cart-title" id="cartTitle"></div>
+            <button class="btn btn-ghost" id="clearCartBtn" type="button"></button>
+          </div>
+
+          <div class="cart-items" id="cartItems"></div>
+
+          <div class="promo-gifts hidden" id="promoGiftSection">
+            <div class="promo-gifts-title" id="promoGiftTitle"></div>
+            <div class="promo-gifts-list" id="promoGiftList"></div>
+            <div class="promo-gifts-hint muted" id="promoGiftHint"></div>
+          </div>
+
+          <div class="cart-summary">
+            <div class="row">
+              <div class="label" id="subtotalLabel"></div>
+              <div class="value" id="subtotalValue">$0.00</div>
+            </div>
+
+            <div class="row" id="discountRow">
+              <div class="label" id="discountLabel"></div>
+              <div class="value" id="discountValue">-$0.00</div>
+            </div>
+
+            <div class="row" id="freeItemRow">
+              <div class="label" id="freeItemLabel"></div>
+              <div class="value" id="freeItemValue">-$0.00</div>
+            </div>
+
+            <div class="row" id="shortageRow">
+              <div class="label" id="shortageLabel"></div>
+              <div class="value" id="shortageValue">-$0.00</div>
+            </div>
+
+            <div class="row total">
+              <div class="label" id="totalLabel"></div>
+              <div class="value" id="totalValue">$0.00</div>
+            </div>
+
+            <button class="btn btn-primary" id="invoiceBtn" type="button"></button>
+            <div class="muted" id="invoiceFootnote"></div>
+          </div>
+
+          <div class="muted cart-note" id="cartNote"></div>
+        
+    </section>
+
+    <!-- Moyuum Official Partners (Below Cart) -->
+    <section class="card partners-card">
+      <div class="partners-head">
+        <div class="partners-title" id="partnersTitle">Moyuum Official Partners</div>
+        <div class="partners-controls">
+          <select id="partnersFilter" class="text-input partners-select"></select>
+          <button id="partnersToggle" class="btn btn-secondary partners-toggle" type="button"></button>
+        </div>
+      </div>
+
+      <!-- Collapsible body: only show when user chooses to view -->
+      <div class="partners-body collapsed" id="partnersBody">
+        <div class="partners-list" id="partnersList"></div>
+        <div class="muted" id="partnersEmpty"></div>
+      </div>
+    </section>
+
+    <!-- Partners Map Modal -->
+    <div class="modal hidden" id="partnersMapModal" role="dialog" aria-modal="true" aria-labelledby="partnersMapModalTitle">
+      <div class="modal-backdrop" data-close="partnersMapModal"></div>
+      <div class="modal-card">
+        <div class="modal-head">
+          <div class="modal-title" id="partnersMapModalTitle">Google map</div>
+          <button class="btn btn-ghost" type="button" data-close="partnersMapModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <iframe id="partnersMapFrame" class="partners-map-frame" src="about:blank" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="partners-map-openline">
+            <a id="partnersMapOpenLink" href="#" target="_blank" rel="noopener">Open in Google Maps</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order / Customer (Optional) -->
+    <section class="card order-card">
+      <div class="order-head">
+        <div class="order-title" id="orderTitle"></div>
+      </div>
+
+      <div class="order-body" id="orderBody">
+        <!-- internal (hidden) -->
+        <div class="order-hidden">
+          <label class="sr-only" id="orderDateLabel" for="orderDateInput"></label>
+          <input id="orderDateInput" class="text-input" type="datetime-local" />
+          <label class="sr-only" id="orderNoLabel" for="orderNoInput"></label>
+          <input id="orderNoInput" class="text-input" type="text" readonly />
+        </div>
+
+        <!-- one-line inputs -->
+        <div class="order-inline">
+          <label class="sr-only" id="customerNameLabel" for="customerNameInput"></label>
+          <input id="customerNameInput" class="text-input" type="text" />
+
+          <label class="sr-only" id="customerContactLabel" for="customerContactInput"></label>
+          <input id="customerContactInput" class="text-input" type="text" />
+
+          <label class="sr-only" id="customerAddressLabel" for="customerAddressInput"></label>
+          <input id="customerAddressInput" class="text-input" type="text" />
+        </div>
+
+        <div class="order-hint" id="orderHint"></div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="card products-card">
+      <div class="toolbar">
+        <div class="toolbar-title" id="productsTitle"></div>
+        <div class="filters" id="categoryFilters"></div>
+      </div>
+      <div class="grid" id="productGrid"></div>
+    </section>
+</main>
+
+  <!-- Invoice Modal -->
+  <div class="modal-backdrop" id="invoiceModal" aria-hidden="true" data-close="1">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title" id="invoiceTitle"></div>
+        <div class="modal-head-actions">
+          <button class="btn" id="printBtn" type="button">Print</button>
+          <button class="btn btn-ghost modal-close" type="button" data-close="1">×</button>
+        </div>
+      </div>
+
+      <div class="invoice-meta">
+        <div class="meta-col">
+          <div><span class="meta-label" id="invPromoNameLabel"></span> <span id="invPromoName"></span></div>
+          <div><span class="meta-label" id="invTelegramLabel"></span> <span id="invTelegram"></span></div>
+          <div><span class="meta-label" id="invPromoCodeLabel"></span> <span id="invPromoCode"></span></div>
+        </div>
+        <div class="meta-col">
+          <div><span class="meta-label" id="invOrderNoLabel"></span> <span id="invOrderNo"></span></div>
+          <div><span class="meta-label" id="invOrderDateLabel"></span> <span id="invOrderDate"></span></div>
+          <div><span class="meta-label" id="invCustomerLabel"></span> <span id="invCustomer"></span></div>
+        </div>
+      </div>
+
+      <table class="invoice-table">
+        <thead>
+          <tr>
+            <th id="thItem"></th>
+            <th class="right" id="thQty"></th>
+            <th class="right" id="thUnit"></th>
+            <th class="right" id="thLine"></th>
+          </tr>
+        </thead>
+        <tbody id="invoiceTbody"></tbody>
+      </table>
+
+      <div class="invoice-totals">
+        <div class="tf-row">
+          <div class="tf-label" id="tfSubtotal"></div>
+          <div class="tf-val" id="tfSubtotalVal"></div>
+        </div>
+        <div class="tf-row" id="tfDiscountRow">
+          <div class="tf-label" id="tfDiscount"></div>
+          <div class="tf-val" id="tfDiscountVal"></div>
+        </div>
+        <div class="tf-row" id="tfFreeItemRow">
+          <div class="tf-label" id="tfFreeItemLabel"></div>
+          <div class="tf-val" id="tfFreeItemVal"></div>
+        </div>
+        <div class="tf-row" id="tfShortageRow">
+          <div class="tf-label" id="tfShortageLabel"></div>
+          <div class="tf-val" id="tfShortageVal"></div>
+        </div>
+        <div class="tf-row total">
+          <div class="tf-label" id="tfTotal"></div>
+          <div class="tf-val" id="tfTotalVal"></div>
+        </div>
+      </div>
+
+      
+<div class="pay-qr">
+  <div class="pay-qr-title" id="payQrTitle">Payment QR</div>
+  <div class="pay-qr-body">
+    <a id="downloadQrImgBtn" class="btn btn-ghost btn-sm" href="assets/payment_qr.png" download>Download QR</a>
+    <img id="payQrImg" class="pay-qr-img" src="assets/payment_qr.png" alt="Payment QR" />
+    <div class="pay-qr-note" id="payQrNote"></div>
+  </div>
+</div>
+
+<div class="modal-actions">
+        <button class="btn" id="downloadPdfBtn" type="button">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+  <!-- Debug panel (enable with ?debug=1) -->
+  <div id="debugPanel" class="debug-panel hidden" aria-hidden="true">
+    <div class="debug-head">
+      <div class="debug-title">Debug</div>
+      <div class="debug-actions">
+        <button id="debugCopyBtn" class="btn btn-ghost btn-sm" type="button">Copy log</button>
+        <button id="debugCloseBtn" class="btn btn-ghost btn-sm" type="button">Close</button>
+      </div>
+    </div>
+    <pre id="debugLog" class="debug-log"></pre>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:0 16px 16px;">
+    <a href="partners_map.html" style="display:inline-block;padding:8px 10px;border:1px solid rgba(0,0,0,.12);border-radius:12px;background:#fff;text-decoration:none;font-size:12px;">Partners Map</a>
+  </div>
+</body>
+</html>

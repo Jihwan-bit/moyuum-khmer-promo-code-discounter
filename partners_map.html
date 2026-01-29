@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moyuum Official Partners Map</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    .pm-wrap{max-width:1100px;margin:24px auto;padding:0 16px;}
+    .pm-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .pm-title{font-size:20px;font-weight:700;}
+    .pm-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .pm-controls select,.pm-controls input{padding:8px 10px;border:1px solid rgba(0,0,0,.12);border-radius:10px;}
+    .pm-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;}
+    .pm-card{background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);overflow:hidden;}
+    #pm-map{height:520px;width:100%;}
+    .pm-list{max-height:520px;overflow:auto;}
+    .pm-group{padding:12px 12px 0 12px;}
+    .pm-group h3{margin:0 0 8px 0;font-size:14px;color:#445;display:flex;justify-content:space-between;}
+    .pm-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid rgba(0,0,0,.06);}
+    .pm-left{display:flex;gap:10px;align-items:flex-start;}
+    .pm-no{min-width:22px;height:22px;border-radius:999px;background:#eef4ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#335;}
+    .pm-name{font-weight:700;font-size:14px;}
+    .pm-loc{font-size:12px;color:#667;margin-top:2px;}
+    .pm-actions{display:flex;gap:8px;}
+    .pm-btn{border:1px solid rgba(0,0,0,.12);background:#fff;border-radius:12px;padding:8px 10px;font-size:12px;cursor:pointer;}
+    .pm-btn:hover{background:#f6f8ff;}
+    .pm-note{font-size:12px;color:#667;margin-top:8px;}
+    @media (max-width: 900px){
+      .pm-grid{grid-template-columns:1fr;}
+      #pm-map{height:420px;}
+      .pm-list{max-height:unset;}
+    }
+  </style>
+</head>
+<body>
+  <div class="pm-wrap">
+    <div class="pm-head">
+      <div>
+        <div class="pm-title">Moyuum Official Partners</div>
+        <div class="pm-note">Pins are based on coordinates from the Excel file. Click a shop to focus the map. Use “Google map” to open Google Maps.</div>
+      </div>
+      <div class="pm-controls">
+        <a class="pm-btn" href="index.html">Back</a>
+        <select id="pm-filter">
+          <option value="ALL">All partners</option>
+          <option value="Phnom Penh">Phnom Penh</option>
+          <option value="Provinces">Provinces</option>
+        </select>
+        <input id="pm-search" type="search" placeholder="Search shop / area" />
+      </div>
+    </div>
+
+    <div class="pm-grid">
+      <div class="pm-card">
+        <div class="pm-list" id="pm-list"></div>
+      </div>
+      <div class="pm-card">
+        <div id="pm-map"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="partners_map.js"></script>
+</body>
+</html>

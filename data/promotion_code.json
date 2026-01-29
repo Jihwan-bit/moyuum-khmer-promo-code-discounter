@@ -1,0 +1,14 @@
+[
+  {
+    "Promotion Code": "TEST_PROMO10",
+    "Promotion Name": "Moyuum Khmer 10% OFF",
+    "Telegram Contact": "@PrekorMoyuumKhmer",
+    "Discount Rate": 0.1
+  },
+  {
+    "Promotion Code": "TEST_PROMO15",
+    "Promotion Name": "Moyuum Khmer 15% OFF",
+    "Telegram Contact": "@PrekorMoyuumKhmer",
+    "Discount Rate": 0.15
+  }
+]
